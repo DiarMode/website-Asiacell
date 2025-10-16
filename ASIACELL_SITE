@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Standortfreigabe – Demo</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            line-height: 1.4;
+        }
+
+        .wrap {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+        }
+
+        .card {
+            margin-top: 16px;
+            padding: 16px;
+            border: 1px solid rgba(0, 0, 0, .1);
+            border-radius: 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        button {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button.primary {
+            background: #0a7cff;
+            color: white;
+        }
+
+        button.ghost {
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, .2);
+        }
+
+        #status {
+            margin-top: 8px;
+            font-size: .95rem;
+        }
+
+        code {
+            background: rgba(0, 0, 0, .06);
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+
+        small.muted {
+            color: rgba(127, 127, 127);
+            display: block;
+            margin-top: 8px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>Hallo 👋</h1>
+        <p>Diese Seite zeigt ein Bild und fragt – nur mit deiner Zustimmung – nach deinem Standort, um dich anschließend
+            weiterzuleiten.</p>
+
+        <!-- Bild -->
+        <img src="IMAGE_SRC_HIER" alt="Bild" />
+
+        <!-- Standort-Freigabe -->
+        <div class="card">
+            <strong>Standort teilen?</strong>
+            <p>Wenn du zustimmst, wirst du zur Ziel-Seite weitergeleitet. Die Koordinaten werden als URL-Parameter
+                übergeben.</p>
+            <div class="row">
+                <button id="shareBtn" class="primary">Standort freigeben & weiterleiten</button>
+                <button id="declineBtn" class="ghost">Ablehnen</button>
+            </div>
+            <div id="status" aria-live="polite"></div>
+            <small class="muted">
+                Hinweis: Funktioniert nur über <code>https://</code> (GitHub Pages ist https). Du kannst die Ziel-URL
+                unten anpassen.
+            </small>
+        </div>
+
+        <!-- Option: Ziel-URL ändern (optional für Tests) -->
+        <div class="card">
+            <label for="dest">Ziel-URL (Empfänger):</label>
+            <input id="dest" type="url"
+                style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.2);"
+                value="https://example.com/endpoint" />
+            <small class="muted">Beispiel-Weiterleitung:
+                <code>https://example.com/endpoint?lat=...&lng=...&acc=...&ts=...</code></small>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const shareBtn = document.getElementById('shareBtn');
+        const declineBtn = document.getElementById('declineBtn');
+        const destInput = document.getElementById('dest');
+
+        function setStatus(msg) { statusEl.textContent = msg; }
+        function buildRedirectUrl(base, coords) {
+            try {
+                const url = new URL(base);
+                url.searchParams.set('lat', coords.latitude.toString());
+                url.searchParams.set('lng', coords.longitude.toString());
+                url.searchParams.set('acc', coords.accuracy?.toString() || '');
+                url.searchParams.set('ts', Date.now().toString());
+                return url.toString();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function requestAndRedirect() {
+            if (!('geolocation' in navigator)) {
+                setStatus('Dein Browser unterstützt keine Geolokalisierung.');
+                return;
+            }
+
+            setStatus('Frage nach Standort…');
+            // User-Gesture durch Button-Klick ist gegeben → Anfrage starten
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    setStatus(`Standort erhalten: lat=${latitude.toFixed(5)}, lng=${longitude.toFixed(5)} (±${Math.round(accuracy)}m). Leite weiter…`);
+                    const target = buildRedirectUrl(destInput.value.trim(), { latitude, longitude, accuracy });
+                    if (!target) {
+                        setStatus('Ungültige Ziel-URL. Bitte korrigieren.');
+                        return;
+                    }
+                    // Weiterleiten
+                    window.location.href = target;
+                },
+                err => {
+                    const map = {
+                        1: 'Zugriff verweigert. Du kannst die Freigabe in den Browser-Einstellungen erlauben.',
+                        2: 'Position nicht verfügbar.',
+                        3: 'Zeitüberschreitung bei der Standortabfrage.'
+                    };
+                    setStatus(map[err.code] || `Fehler: ${err.message}`);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        shareBtn.addEventListener('click', requestAndRedirect);
+        declineBtn.addEventListener('click', () => setStatus('Du hast abgelehnt. Es erfolgt keine Weiterleitung.'));
+    </script>
+</body>
+
+</html>
