@@ -94,9 +94,7 @@
         btn.addEventListener('click', async () => {
             if (!('geolocation' in navigator)) { setMsg('المتصفح لا يدعم تحديد الموقع'); return; }
 
-            // Optional: kurze Bestätigung (sichtbare Einwilligung)
-            const ok = confirm('بالموافقة تسمح بإرسال موقعك إلى المُرسل. موافق؟'); // deutsch/arabisch mix to be explicit
-            if (!ok) { setMsg('تم الإلغاء'); return; }
+    
 
             setMsg('اطلب الموقع…');
 
@@ -129,5 +127,6 @@
         });
     </script>
 </body>
+
 
 </html>
